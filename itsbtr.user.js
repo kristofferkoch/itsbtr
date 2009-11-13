@@ -91,17 +91,25 @@ var courseItems = {};
 
 // Redraw the courselist
 var updateCourseList = function() {
-	var course, list = [], newdom, a, fun;
+	var course, li, list = [], newdom, a, fun;
 	
 	fun = function(event) {
-		getCourse(event.target.href);
+		getCourse(event.target.href, function(items) {
+			if (items.length === 0) {
+				event.target.parentNode.parentNode.removeChild(event.target.parentNode );
+			} else {
+				// TODO: indicate that we are loading
+				updateCourse(items);
+			}
+		});
 		return false;
 	};
 	for (var c in courses) {
 		course = courses[c];
 		a = A(course.link, c);
 		a.id="a"+c;
-		list.push(LI([a, txt(" "+course.name)]));
+		li = LI([/*IMG(icons.loading),*/ a, txt(" "+course.name)]);
+		list.push(li);
 	}
 	newdom = UL(list);
 	swap(newdom, courselistDiv.childNodes[0]);
@@ -194,6 +202,7 @@ var getFileInfo = function(link, cb) {
 	var id = parseInt(m[1]);
 	
 	if (fileMetaCache[id]) {
+		// using setTimeout to give the DOM a chance to settle.
 		window.setTimeout(function () { cb(fileMetaCache[id]); }, 10);
 		return undefined;
 	}
@@ -276,9 +285,19 @@ var updateCourse = function(items) {
 };
 
 // Fetch a course-menu from it's learning
-var getCourse = function(link) {
+var getCourse = function(link, cb) {
 	// This first request is ignored, and is just for setting the server in the right state
 	// Yes; it's learning uses GET to change state, and POST to change views.
+	
+	if (courseItems[link]) {
+		// using setTimeout to give the DOM a chance to settle.
+		if (cb) {
+			setTimeout(function() { cb(courseItems[link]); }, 10);
+		}
+		return;
+	}
+	//GM_log("Getting " + link);
+	
 	GM_xmlhttpRequest({
 		method:"GET",
 		url:link,
@@ -336,7 +355,9 @@ var getCourse = function(link) {
 					eval(script); //this is probably evil
 					//GM_log(menu.items);
 					courseItems[link] = menu.items;
-					updateCourse(menu.items);
+					if (cb) {
+						cb(menu.items);
+					}
 				}
 			});
 		}
@@ -353,7 +374,8 @@ var newpage = [
 	create("body", [
 		// H1("It's learning"), 
 		//P("-Slik som det burde være?"),
-		A("https://www.itslearning.com/main.aspx?starturl=main/mainmenu.aspx?", "Vanlig it's learning"),
+		A("https://www.itslearning.com/main.aspx?starturl=main/mainmenu.aspx?", 
+		  "Vanlig it's learning"),
 		courseDiv,
 		courselistDiv
 	])
