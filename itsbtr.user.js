@@ -82,6 +82,13 @@ var icons = {
 // Global variable with the course-list
 var courses = {};
 
+// Cache for fileid as in "https://www.itslearning.com/file/fs_folderfile.aspx?FolderFileID=1140992"
+// to object {"id":id,"code":code,"link":link,"name":name,"updated":updated,"active":active}
+var fileMetaCache = {};
+
+// Cache for each course-menu on coursecode (e.g "TMA4100") -> tree structure
+var courseItems = {};
+
 // Redraw the courselist
 var updateCourseList = function() {
 	var course, list = [], newdom, a, fun;
@@ -183,13 +190,21 @@ var getAllCourses = function() {
 // Function to actually fetch the url to a file, without the intermediate meta-data page
 var getFileInfo = function(link, cb) {
 	//GM_log("Getting "+link);
+	var m = /FolderFileID=(\d+)/.exec(link);
+	var id = parseInt(m[1]);
+	
+	if (fileMetaCache[id]) {
+		window.setTimeout(function () { cb(fileMetaCache[id]); }, 10);
+		return undefined;
+	}
+	
 	GM_xmlhttpRequest({
 		method:"GET",
 		url:"https://www.itslearning.com"+link,
 		onload:function(details) {
 			//GM_log(details.responseText);
 			var txt = details.responseText;
-			var m;
+			var m, obj;
 			var url, kb, kommentar, mime,filename;
 			
 			m = /\<a href=\"([^\"]*)\".*title=\"Last ned\".*\>\<img.*\>\<span\>Last\ ned\ (.+)\ \((\d+) kb\)/.exec(txt);
@@ -205,8 +220,11 @@ var getFileInfo = function(link, cb) {
 			m = m.exec(txt);
 			mime=m[1];
 			
-			GM_log(mime+" "+filename+" "+kb+" "+url+ " " + kommentar);
-			cb({"url":url, "kb":kb,"kommentar":kommentar,"mime":mime,"filename":filename});
+			//GM_log(mime+" "+filename+" "+kb+" "+url+ " " + kommentar);
+			obj = {"url":url, "kb":kb,"kommentar":kommentar,"mime":mime,"filename":filename};
+
+			fileMetaCache[id] = obj;
+			cb(obj);
 		}
 	});
 };
@@ -219,10 +237,10 @@ var updateCourse = function(items) {
 		var img, a, r, ul, i, list=[];
 		
 		if (item.icon === "element_file.gif") {
-			img = icons.file;
+			img = icons.loading;
 			a = A(item.link, item.name_);
 			getFileInfo(item.link, function(info) {
-				var newimg = img, newr;
+				var newimg = icons.file, newr;
 				if (info.mime === "application/pdf") {
 					newimg = icons.pdf;
 				}
@@ -256,7 +274,6 @@ var updateCourse = function(items) {
 	ul = UL(list);
 	swap(ul, courseDiv.childNodes[0]);
 };
-var courseItems = {};
 
 // Fetch a course-menu from it's learning
 var getCourse = function(link) {
@@ -317,7 +334,7 @@ var getCourse = function(link) {
 					var MTMIcon = dummy;
 					var MTMFunctionItem = dummy;
 					eval(script); //this is probably evil
-					GM_log(menu.items);
+					//GM_log(menu.items);
 					courseItems[link] = menu.items;
 					updateCourse(menu.items);
 				}
