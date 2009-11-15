@@ -136,12 +136,16 @@ var updateCourseList = function() {
 	fun = function(event) {
 		getCourse(event.target.href, function(items) {
 			if (items.length === 0) {
-				event.target.parentNode.parentNode.removeChild(event.target.parentNode );
-			} else {
-				// TODO: indicate that we are loading
+				event.target.parentNode.parentNode.removeChild(event.target.parentNode);
+				
+				swap(P("Det ser ikke ut som om " + event.target.textContent + " bruker it's learning"),
+					 courseDiv.childNodes[0]);
+			} else {			
 				updateCourse(items);
-			}
-		});
+			}			
+		});		
+		swap(P([IMG(icons.loading), txt("Laster " + event.target.textContent + "...")]),
+			 courseDiv.childNodes[0]);
 		return false;
 	};
 	for (var c in courses) {
@@ -229,7 +233,7 @@ var getAllCourses = function() {
 				data  :data,
 				onload:function(details) {
 					parseCourseList(details.responseText);
-					preloadCourses();
+					//preloadCourses();
 				}
 			});
 		}
@@ -367,7 +371,7 @@ var getCourse = (function() {
 		
 		if (working) {
 			//GM_log("deferring " + link);
-			waiting.push(function(){ getCourse(link, cb); });
+			waiting.unshift(function(){ getCourse(link, cb); });
 			return;
 		}
 		working = true;
@@ -426,8 +430,6 @@ var getCourse = (function() {
 						var MTMIcon = dummy;
 						var MTMFunctionItem = dummy;
 						var i;
-						var oldwaiting = waiting;
-						waiting = [];
 						eval(script); //this is probably evil
 						//GM_log(menu.items);
 						courseItems[link] = menu.items;
@@ -435,8 +437,8 @@ var getCourse = (function() {
 							cb(menu.items);
 						}
 						working = false;
-						for(i=0; i < oldwaiting.length; i++) {
-							oldwaiting[i]();
+						if (waiting.length > 0) {
+							waiting.shift()();
 						}
 					}
 				});
