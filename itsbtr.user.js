@@ -152,7 +152,7 @@ var updateCourseList = function() {
 		course = courses[c];
 		a = A(course.link, c);
 		a.id="a"+c;
-		li = LI([/*IMG(icons.loading),*/ a, txt(" "+course.name)]);
+		li = LI([a, txt(" "+course.name)]);
 		list.push(li);
 	}
 	newdom = UL(list);
@@ -175,12 +175,16 @@ var parseCourseList = function(courseList) {
 		dom = courseList;
 	}
 	var trs = dom.getElementsByTagName("tr");
-	var i;
+	var i, obj;
 	var tds, id, link, text, m, code, name_, updated, active;
 	for(i=1; i < trs.length; i++) {
 		tds = trs[i].getElementsByTagName("td");
-		link = tds[2].getElementsByTagName("a")[0];
-		m = /CourseID=(\d+)/.exec(link);
+		if (tds.length === 8) {
+			link = tds[2].getElementsByTagName("a")[0];
+		} else {
+			link = tds[1].getElementsByTagName("a")[0];
+		}
+		m = /ID=(\d+)/.exec(link);
 		id = parseInt(m[1]);
 		text = link.textContent;
 		m = /^([A-ZÆØÅ]{2,4}[0-9]{1,4})\ (.*)/.exec(text);
@@ -188,12 +192,13 @@ var parseCourseList = function(courseList) {
 			code = m[1];
 			name_ = m[2];
 		} else {
-			code = "";
-			name_ = text;
+			code = text;
+			name_ = "";
 		}
 		updated = tds[4].textContent;
 		active = tds[6].textContent === "Aktiv";
-		courses[code] = {"id":id,"code":code,"link":link,"name":name_,"updated":updated,"active":active};
+		obj = {"id":id,"code":code,"link":link,"name":name_,"updated":updated,"active":active};
+		courses[code] = obj;
 		//GM_log(id + ": " + name_ + ", "+code+" "+active+" "+link);
 	}
 	updateCourseList();
@@ -201,43 +206,50 @@ var parseCourseList = function(courseList) {
 
 // Start fetching a list of all courses
 var getAllCourses = function() {
-	GM_xmlhttpRequest({
-		method:"GET",
-		url   :"https://www.itslearning.com/course/AllCourses.aspx",
-		onload:function(details) {
-			var parser = new DOMParser();
-			var dom = parser.parseFromString(details.responseText, "application/xhtml+xml");
-			var form = dom.getElementsByTagName("form")[0];
-			var inputs = form.getElementsByTagName("input");
-			var select = form.getElementsByTagName("select")[0];
-			var i;
-			var data = {};
-			//GM_log(details.responseText);
-			
-			for(i=0; i < inputs.length; i++) {
-				if (inputs[i].type !== "checkbox") {
-					data[inputs[i].name] = inputs[i].value;
-				}
-			}
-			//courses = {};
-			parseCourseList(dom);
-			
-			data = encodeObject(data)+"&"+select.name+"=0";
-			//GM_log("POSTing with: " + data);
+	var urls = ["https://www.itslearning.com/course/AllCourses.aspx",
+				"https://www.itslearning.com/project/AllProjects.aspx"];
+	var i;
+	for(i=0; i < urls.length; i++) { 
+		(function(url) {
 			GM_xmlhttpRequest({
-				method:"POST",
-				url   :"https://www.itslearning.com/course/AllCourses.aspx",
-				headers: {
-				    "Content-Type": "application/x-www-form-urlencoded"
-				},
-				data  :data,
+				method:"GET",
+				"url" : url,
 				onload:function(details) {
-					parseCourseList(details.responseText);
-					//preloadCourses();
+					var parser = new DOMParser();
+					var dom = parser.parseFromString(details.responseText, "application/xhtml+xml");
+					var form = dom.getElementsByTagName("form")[0];
+					var inputs = form.getElementsByTagName("input");
+					var select = form.getElementsByTagName("select")[0];
+					var i;
+					var data = {};
+					//GM_log(details.responseText);
+					
+					for(i=0; i < inputs.length; i++) {
+						if (inputs[i].type !== "checkbox") {
+							data[inputs[i].name] = inputs[i].value;
+						}
+					}
+					//courses = {};
+					parseCourseList(dom);
+					
+					data = encodeObject(data)+"&"+select.name+"=0";
+					GM_log("POSTing "+url+" with: " + data);
+					GM_xmlhttpRequest({
+						method:"POST",
+						"url"  :url,
+						headers: {
+						    "Content-Type": "application/x-www-form-urlencoded"
+						},
+						data  :data,
+						onload:function(details) {
+							parseCourseList(details.responseText);
+							//preloadCourses();
+						}
+					});
 				}
 			});
-		}
-	});
+		})(urls[i]);
+	}
 };
 
 // Function to actually fetch the url to a file, without the intermediate meta-data page

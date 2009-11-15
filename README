@@ -1,18 +1,19 @@
 Viser en nedstrippet versjon av it's learning med direkte tilgang til filene
 
  TODO:
+  - Sortere fag og prosjekt deterministisk
   - Penere CSS
   - Avbryte utestående forespørsler når de ikke lenger er relevante.
   - Fjerne avhengigheter til språk (og andre?) instillinger på it's learning
   - Generere en bra startside med detaljert info om hva som er endret siden sist (med direkte lenker!)
-  - Implementere støtte for prosjekt (veldig likt som for fag)
   - Lage fornuftige regler for flere mime-typer
-  - Fjerne fag fra listen som ikke bruker it's
-  - Cache data for raskere frem og tilbake navigasjon
-  - Bruke location.hash for navigasjon med nettleserens frem og tilbake knapper
+  - Bruke location.hash for navigasjon med nettleserens frem- og tilbakeknapper
   - Bedre dokumentasjon og kommentarer
   - Fikse bugs som dukker opp.
   
 Fikset:
+  - Implementere støtte for prosjekt (veldig likt som for fag)
+  - Cache data for raskere frem- og tilbakenavigasjon
   - Vise mer status om lasting
+  - Fjerne fag fra listen som ikke bruker it's
   - Få skrolling til å virke
