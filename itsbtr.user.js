@@ -3,9 +3,10 @@
 // @namespace      http://koch.dns6.org
 // @description    Viser en nedstrippet versjon av it's learning med direkte tilgang til filene
 // @copyright      2009, Kristoffer Ellersgaard Koch
-// @version        0.0.1
+// @version        0.0.2
 // @license        GPL version 3 or any later version; http://www.gnu.org/licenses/gpl-3.0.html
 // @include        https://www.itslearning.com/main.aspx?starturl=main/mainmenu.aspx
+// @include        https://www.itslearning.com/main/mainmenu.aspx
 // ==/UserScript==
 
 // TODO:
@@ -344,39 +345,41 @@ var getCourse = function(link) {
 var courseDiv = DIV("Velg et fag...");
 var courselistDiv = DIV("Laster liste...");
 
-var newpage = [
-	create("head", create("title", "It's learning (itsbtr)")),
-	create("body", [
-		// H1("It's learning"), 
-		//P("-Slik som det burde være?"),
-		A("https://www.itslearning.com/main.aspx?starturl=main/mainmenu.aspx?", "Vanlig it's learning"),
-		courseDiv,
-		courselistDiv
-	])
-];
+(function() {
+	var newpage = [
+		create("head", create("title", "It's learning (itsbtr)")),
+		create("body", [
+			// H1("It's learning"), 
+			//P("-Slik som det burde være?"),
+			A("https://www.itslearning.com/main.aspx?starturl=main/mainmenu.aspx?", "Vanlig it's learning"),
+			courseDiv,
+			courselistDiv
+		])
+	];
+	var old = unsafeWindow.document.getElementsByTagName("html")[0];
+	var i;
+	
+	
+	if (location.href === "https://www.itslearning.com/main.aspx?starturl=main/mainmenu.aspx") {
+		location.href = "https://www.itslearning.com/main/mainmenu.aspx";
+		return;
+	}
+	
+	// Remove all the horrible it's learning tags
+	for(i=old.childNodes.length-1; i >= 0; i--) {
+		old.removeChild(old.childNodes[i]);
+	}
+	// And insert our own simple ones
+	for(i=0; i < newpage.length; i++) {
+		old.appendChild(newpage[i]);
+	}
+	courseDiv.style["width"] = "70%";
+	courseDiv.style["cssFloat"] = "right";
 
-var old = unsafeWindow.document.getElementsByTagName("html")[0];
-var i;
+	courselistDiv.style["background"] = "#ddd";
+	courselistDiv.style["width"] = "30%";
+	courselistDiv.style["cssFloat"] = "left";
 
-// Remove all the horrible it's learning tags
-for(i=old.childNodes.length-1; i >= 0; i--) {
-	old.removeChild(old.childNodes[i]);
-}
-// And insert our own simple ones
-for(i=0; i < newpage.length; i++) {
-	old.appendChild(newpage[i]);
-}
-/*GM_addStyle(
-	"html, body {margin:0; padding:0; } "
-);*/
-//courseDiv.style["background"] = "green";
-courseDiv.style["width"] = "70%";
-courseDiv.style["cssFloat"] = "right";
-
-courselistDiv.style["background"] = "#ddd";
-courselistDiv.style["width"] = "30%";
-courselistDiv.style["cssFloat"] = "left";
-
-getAllCourses();
-
+	getAllCourses();
+})();
 
