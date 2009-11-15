@@ -1,7 +1,6 @@
 Viser en nedstrippet versjon av it's learning med direkte tilgang til filene
 
  TODO:
-  - Få skrolling til å virke
   - Vise mer status om lasting
   - Penere CSS
   - Avbryte utestående forespørsler når de ikke lenger er relevante.
@@ -14,3 +13,6 @@ Viser en nedstrippet versjon av it's learning med direkte tilgang til filene
   - Bruke location.hash for navigasjon med nettleserens frem og tilbake knapper
   - Bedre dokumentasjon og kommentarer
   - Fikse bugs som dukker opp.
+  
+Fikset:
+  - Få skrolling til å virke

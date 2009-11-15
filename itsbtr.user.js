@@ -24,11 +24,13 @@ function isArray(testObject) {
 }
 
 var txt = document.createTextNode;
-var create = function (type, content) {
+var create = function (type, attributes, content) {
 	var e = document.createElement(type);
 	var i;
 	
-	if (typeof content === "string") {
+	if (!content) {
+		// nop
+	} else if (typeof content === "string") {
 		e.appendChild(txt(content));
 	} else if (isArray(content)) {
 		for(i=0;i<content.length;i++) {
@@ -39,26 +41,25 @@ var create = function (type, content) {
 	} else {
 		GM_log("not a dom element: "+e);
 	}
+	if (typeof attributes === "object") {
+		for (var attr in attributes) {
+			if (attributes.hasOwnProperty(attr)) {
+				e.setAttribute(attr, attributes[attr]);
+			}
+		}
+	}
 	return e;
 };
 
 // some crude rippoffs from MochiKit
-var DIV = function(c) { return create("div", c); };
-var H1 = function(c) { return create("h1", c); };
-var P = function(c) { return create("p", c); };
-var UL = function(c) { return create("ul", c); };
-var LI = function(c) { return create("li", c); };
-var SPAN = function(c) { return create("SPAN", c); };
-var A = function(href, c) { 
-	var r = create("a", c);
-	r.href = href;
-	return r;
-};
-var IMG = function(src) {
-	var r = create("img", "");
-	r.src = src;
-	return r;
-};
+var DIV = function(c,a) { return create("div", a, c); };
+var H1 = function(c,a) { return create("h1", a, c); };
+var P = function(c,a) { return create("p", a, c); };
+var UL = function(c,a) { return create("ul", a, c); };
+var LI = function(c,a) { return create("li", a, c); };
+var SPAN = function(c,a) { return create("SPAN", a, c); };
+var A = function(href, c) { return create("a", {"href":href}, c); }
+var IMG = function(src) { return create("img", {"src":src}, null); }
 
 // For generating multipart-strings for POSTing
 var encodeObject = function(obj) {
@@ -85,6 +86,7 @@ var courses = {};
 
 // Cache for fileid as in "https://www.itslearning.com/file/fs_folderfile.aspx?FolderFileID=1140992"
 // to object {"id":id,"code":code,"link":link,"name":name,"updated":updated,"active":active}
+// This relation never changes (to my knowledge), so this can be permanently cached
 var fileMetaCache = {};
 
 // Cache for each course-menu on coursecode (e.g "TMA4100") -> tree structure
@@ -372,8 +374,8 @@ var courselistDiv = DIV("Laster liste...");
 
 (function() {
 	var newpage = [
-		create("head", create("title", "It's learning (itsbtr)")),
-		create("body", [
+		create("head", null, create("title", "It's learning (itsbtr)")),
+		create("body", null, [
 			// H1("It's learning"), 
 			//P("-Slik som det burde være?"),
 			A("https://www.itslearning.com/main.aspx?starturl=main/mainmenu.aspx?", "Vanlig it's learning"),
