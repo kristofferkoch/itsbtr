@@ -229,6 +229,7 @@ var getAllCourses = function() {
 				data  :data,
 				onload:function(details) {
 					parseCourseList(details.responseText);
+					preloadCourses();
 				}
 			});
 		}
@@ -252,21 +253,21 @@ var getFileInfo = function(link, cb) {
 		url:"https://www.itslearning.com"+link,
 		onload:function(details) {
 			//GM_log(details.responseText);
-			var txt = details.responseText;
+			var text = details.responseText;
 			var m, obj;
 			var url, kb, kommentar, mime,filename;
 			
-			m = /\<a href=\"([^\"]*)\".*title=\"Last ned\".*\>\<img.*\>\<span\>Last\ ned\ (.+)\ \((\d+) kb\)/.exec(txt);
+			m = /\<a href=\"([^\"]*)\".*title=\"Last ned\".*\>\<img.*\>\<span\>Last\ ned\ (.+)\ \((\d+) kb\)/.exec(text);
 			
 			url = m[1];
 			filename = m[2];
 			kb = parseInt(m[3]);
 			
 			m = /Kommentar\<\/th[^\<]*\<td[^\>]*\>(.*)\ \<\/td\>/m;
-			m = m.exec(txt);
+			m = m.exec(text);
 			kommentar = m[1];
 			m = /MIME-type\<\/th[^\<]*\<td[^\>]*\>(.*)\ \<\/td\>/m;
-			m = m.exec(txt);
+			m = m.exec(text);
 			mime=m[1];
 			
 			//GM_log(mime+" "+filename+" "+kb+" "+url+ " " + kommentar);
@@ -276,6 +277,29 @@ var getFileInfo = function(link, cb) {
 			cb(obj);
 		}
 	});
+};
+
+var preloadCourses = function() {
+	var preloadCourse = function(course) {
+		var a = unsafeWindow.document.getElementById("a"+c);
+		var li = a.parentNode;
+		var newli = LI([IMG(icons.loading), a, txt(" "+course.name)]);
+		swap(newli, li);
+		getCourse(a.href, function(items) {
+			var nnewli;
+			if (items.length === 0) {
+				newli.parentNode.removeChild(newli);
+			} else {
+				nnewli = LI([a, txt(" "+course.name)]);
+				swap(nnewli, newli);
+			}
+		});
+	};
+	for (var c in courses) {
+		if (courses.hasOwnProperty(c)) {
+			preloadCourse(courses[c]);
+		}
+	}
 };
 
 // Draw a course's contents
@@ -325,84 +349,101 @@ var updateCourse = function(items) {
 };
 
 // Fetch a course-menu from it's learning
-var getCourse = function(link, cb) {
-	// This first request is ignored, and is just for setting the server in the right state
-	// Yes; it's learning uses GET to change state, and POST to change views.
+var getCourse = (function() {
+	var working = false;
+	var waiting = [];
+	return function(link, cb) {
+		// This first request is ignored, and is just for setting the server in the right state
+		// Yes; it's learning uses GET to change state, and POST to change views.
 	
-	if (courseItems[link]) {
-		// using setTimeout to give the DOM a chance to settle.
-		if (cb) {
-			setTimeout(function() { cb(courseItems[link]); }, 10);
+		if (courseItems[link]) {
+			// using setTimeout to give the DOM a chance to settle.
+			if (cb) {
+				setTimeout(function() { cb(courseItems[link]); }, 10);
+			}
+			return;
 		}
-		return;
-	}
-	//GM_log("Getting " + link);
-	
-	GM_xmlhttpRequest({
-		method:"GET",
-		url:link,
-		onload:function(details) {
-			GM_xmlhttpRequest({
-				method:"GET",
-				url:"https://www.itslearning.com/course/course.aspx",
-				onload:function(details) {
-					var parser = new DOMParser();
-					var dom = parser.parseFromString(details.responseText, "application/xhtml+xml");
-					//GM_log("content-area: "+details.responseText);
-					var newtable = dom.getElementById("NewsElementsSection_ctl05_newelements");
-					var newelements, i, a;
-					if (newtable) {
-						newelements = newtable.getElementsByTagName("tr");
-											
-						for(i = 1; i < newelements.length; i++) {
-							a = newelements[i].getElementsByTagName("a")[0];
-							// TODO: don't ignore this data.
-							GM_log("New element: "+a.textContent+": "+a.href);
+		//GM_log("Getting " + link);
+		
+		if (working) {
+			//GM_log("deferring " + link);
+			waiting.push(function(){ getCourse(link, cb); });
+			return;
+		}
+		working = true;
+		GM_xmlhttpRequest({
+			method:"GET",
+			url:link,
+			onload:function(details) {
+				GM_xmlhttpRequest({
+					method:"GET",
+					url:"https://www.itslearning.com/course/course.aspx",
+					onload:function(details) {
+						var parser = new DOMParser();
+						var dom = parser.parseFromString(details.responseText, "application/xhtml+xml");
+						//GM_log("content-area: "+details.responseText);
+						var newtable = dom.getElementById("NewsElementsSection_ctl05_newelements");
+						var newelements, i, a;
+						if (newtable) {
+							newelements = newtable.getElementsByTagName("tr");
+												
+							for(i = 1; i < newelements.length; i++) {
+								a = newelements[i].getElementsByTagName("a")[0];
+								// TODO: don't ignore this data.
+								GM_log("New element: "+a.textContent+": "+a.href);
+							}
 						}
 					}
-				}
-				
-			});
-			// Load and parse menu:
-			GM_xmlhttpRequest({
-				method:"GET",
-				url:"https://www.itslearning.com/treemenu.aspx",
-				onload:function(details) {
-					var script = details.responseText.substr(details.responseText.indexOf("var MTM"));
-					script = script.substr(0,script.indexOf("\n//]]>"));
-					//GM_log("treemenu:"+script);
-					var dummy = function() {};
-					var MTMenu = function() {
-						this.items = [];
-						this.MTMAddFunctions = dummy;
-						this.MTMAddItem = function(item) {
-							this.items.push(item);
+					
+				});
+				// Load and parse menu:
+				GM_xmlhttpRequest({
+					method:"GET",
+					url:"https://www.itslearning.com/treemenu.aspx",
+					onload:function(details) {
+						var script = details.responseText.substr(details.responseText.indexOf("var MTM"));
+						script = script.substr(0,script.indexOf("\n//]]>"));
+						//GM_log("treemenu:"+script);
+						var dummy = function() {};
+						var MTMenu = function() {
+							this.items = [];
+							this.MTMAddFunctions = dummy;
+							this.MTMAddItem = function(item) {
+								this.items.push(item);
+							};
 						};
-					};
-					var MTMenuItem = function(ign1, name_, link, ign2, icon) {
-						this.MTMakeSubmenu = function(n) {
-							this.sub = n;
+						var MTMenuItem = function(ign1, name_, link, ign2, icon) {
+							this.MTMakeSubmenu = function(n) {
+								this.sub = n;
+							};
+							this.name_ = name_;
+							this.link  = link;
+							this.icon  = icon;
 						};
-						this.name_ = name_;
-						this.link  = link;
-						this.icon  = icon;
-					};
-					var IconList = function() {
-						this.addIcon = dummy;
-					};
-					var MTMIcon = dummy;
-					var MTMFunctionItem = dummy;
-					eval(script); //this is probably evil
-					//GM_log(menu.items);
-					courseItems[link] = menu.items;
-					if (cb) {
-						cb(menu.items);
+						var IconList = function() {
+							this.addIcon = dummy;
+						};
+						var MTMIcon = dummy;
+						var MTMFunctionItem = dummy;
+						var i;
+						var oldwaiting = waiting;
+						waiting = [];
+						eval(script); //this is probably evil
+						//GM_log(menu.items);
+						courseItems[link] = menu.items;
+						if (cb) {
+							cb(menu.items);
+						}
+						working = false;
+						for(i=0; i < oldwaiting.length; i++) {
+							oldwaiting[i]();
+						}
 					}
-				}
-			});
-		}
-	});
-};
+				});
+			}
+		});
+	};
+})();
 //getCourse("https://www.itslearning.com/main.aspx?CourseID=8373");
 
 //location.href="about:blank";
