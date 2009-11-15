@@ -9,21 +9,6 @@
 // @include        https://www.itslearning.com/main/mainmenu.aspx
 // ==/UserScript==
 
-// TODO:
-//  - Få skrolling til å virke
-//  - Vise mer status om lasting
-//  - Penere CSS
-//  - Avbryte utestående forespørsler når de ikke lenger er relevante.
-//  - Fjerne avhengigheter til språk (og andre?) instillinger på it's learning
-//  - Generere en bra startside med detaljert info om hva som er endret siden sist (med direkte lenker!)
-//  - Implementere støtte for prosjekt (veldig likt som for fag)
-//  - Lage fornuftige regler for flere mime-typer
-//  - Fjerne fag fra listen som ikke bruker it's
-//  - Cache data for raskere frem og tilbake navigasjon
-//  - Bruke location.hash for navigasjon med nettleserens frem og tilbake knapper
-//  - Bedre dokumentasjon og kommentarer
-//  - Fikse bugs som dukker opp.
-
 // Function for swapping out a DOM object
 var swap = function (newDom, oldDom) {
 	if (oldDom.parentNode) {
