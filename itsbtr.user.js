@@ -129,9 +129,6 @@ fileMeta.load();
 // Cache for each course-menu on coursecode (e.g "TMA4100") -> tree structure
 var courseItems = {};
 
-
-
-
 // Redraw the courselist
 var updateCourseList = function() {
 	var course, li, list = [], newdom, a, fun;
@@ -414,7 +411,7 @@ var courselistDiv = DIV("Laster liste...");
 
 (function() {
 	var newpage = [
-		create("head", null, create("title", "It's learning (itsbtr)")),
+		create("head", null, create("title", null, "It's learning (itsbtr)")),
 		create("body", null, [
 			// H1("It's learning"), 
 			//P("-Slik som det burde være?"),
