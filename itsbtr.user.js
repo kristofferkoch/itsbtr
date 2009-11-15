@@ -3,7 +3,7 @@
 // @namespace      http://koch.dns6.org
 // @description    Viser en nedstrippet versjon av it's learning med direkte tilgang til filene
 // @copyright      2009, Kristoffer Ellersgaard Koch
-// @version        0.0.2
+// @version        0.0.3
 // @license        GPL version 3 or any later version; http://www.gnu.org/licenses/gpl-3.0.html
 // @include        https://www.itslearning.com/main.aspx?starturl=main/mainmenu.aspx
 // @include        https://www.itslearning.com/main/mainmenu.aspx
