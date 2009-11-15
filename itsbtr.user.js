@@ -61,6 +61,14 @@ var SPAN = function(c,a) { return create("SPAN", a, c); };
 var A = function(href, c) { return create("a", {"href":href}, c); }
 var IMG = function(src) { return create("img", {"src":src}, null); }
 
+// From http://wiki.greasespot.net/Code_snippets
+var deserialize = function (name, def) {
+  return eval(GM_getValue(name, (def || '({})')));
+}
+var serialize = function (name, val) {
+  GM_setValue(name, uneval(val));
+}
+
 // For generating multipart-strings for POSTing
 var encodeObject = function(obj) {
 	var ret = "";
@@ -87,10 +95,42 @@ var courses = {};
 // Cache for fileid as in "https://www.itslearning.com/file/fs_folderfile.aspx?FolderFileID=1140992"
 // to object {"id":id,"code":code,"link":link,"name":name,"updated":updated,"active":active}
 // This relation never changes (to my knowledge), so this can be permanently cached
-var fileMetaCache = {};
+var fileMeta = {};
+fileMeta.cache = {};
+fileMeta.flush_timer = null;
+fileMeta.id = function(id) {
+	var m;
+	if (typeof id === "string") {
+		m = /FolderFileID=(\d+)/.exec(id);
+		id = parseInt(m[1]);
+	}
+	return id;
+}
+fileMeta.get = function(id) {
+	return fileMeta.cache[fileMeta.id(id)];
+};
+fileMeta.set = function(id, value) {
+	id = fileMeta.id(id);
+	fileMeta.cache[id] = value;
+	if (fileMeta.flush_timer) {
+		clearTimeout(fileMeta.flush_timer);
+	}
+	fileMeta.flush_timer = setTimeout(fileMeta.flush, 1000);
+};
+fileMeta.flush = function() {
+	GM_log("flushing");
+	serialize("fileMeta", fileMeta.cache);
+};
+fileMeta.load = function() {
+	fileMeta.cache = deserialize("fileMeta", {});
+};
+fileMeta.load();
 
 // Cache for each course-menu on coursecode (e.g "TMA4100") -> tree structure
 var courseItems = {};
+
+
+
 
 // Redraw the courselist
 var updateCourseList = function() {
@@ -204,9 +244,9 @@ var getFileInfo = function(link, cb) {
 	var m = /FolderFileID=(\d+)/.exec(link);
 	var id = parseInt(m[1]);
 	
-	if (fileMetaCache[id]) {
+	if (fileMeta.get(id)) {
 		// using setTimeout to give the DOM a chance to settle.
-		window.setTimeout(function () { cb(fileMetaCache[id]); }, 10);
+		window.setTimeout(function () { cb(fileMeta.get(id)); }, 10);
 		return undefined;
 	}
 	
@@ -235,7 +275,7 @@ var getFileInfo = function(link, cb) {
 			//GM_log(mime+" "+filename+" "+kb+" "+url+ " " + kommentar);
 			obj = {"url":url, "kb":kb,"kommentar":kommentar,"mime":mime,"filename":filename};
 
-			fileMetaCache[id] = obj;
+			fileMeta.set(id, obj);
 			cb(obj);
 		}
 	});
